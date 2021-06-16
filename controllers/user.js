@@ -2,14 +2,17 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
+//Masquage de l'adresse email
+const crypt = require("crypto-js");
 
 dotenv.config();
 
 exports.signup = (req, res, next) => {
+  const cryptoEmail = crypt.MD5(req.body.email).toString();
   bcrypt
     .hash(req.body.password, 10)
     .then((hash) => {
-      const user = new User({ email: req.body.email, password: hash });
+      const user = new User({ email: cryptoEmail, password: hash });
       user
         .save()
         .then(() => res.status(201).json({ message: "Utilisateur créé !" }))
@@ -19,7 +22,8 @@ exports.signup = (req, res, next) => {
 };
 
 exports.login = (req, res, next) => {
-  User.findOne({ email: req.body.email })
+  const cryptoEmail = crypt.MD5(req.body.email).toString();
+  User.findOne({ email: cryptoEmail })
     .then((user) => {
       if (!user) {
         return res.status(401).json({ error: "Utilisateur non trouvé !" });
@@ -34,7 +38,7 @@ exports.login = (req, res, next) => {
             userId: user._id,
             token: jwt.sign(
               { userId: user._id },
-              process.env.AUTH_KEY_SECRET_TOKEN,
+              process.env.AUTH_SECRET_KEY_TOKEN,
               {
                 expiresIn: "24h",
               }

@@ -1,15 +1,19 @@
 const Sauce = require("../models/Sauce");
 const fs = require("fs");
+const { error } = require("console");
 
 exports.createSauce = (req, res, next) => {
   const sauceObject = JSON.parse(req.body.sauce);
   delete sauceObject._id;
   const sauce = new Sauce({
     ...sauceObject,
+    likes: 0,
+    dislikes: 0,
     imageUrl: `${req.protocol}://${req.get("host")}/images/${
       req.file.filename
     }`,
   });
+  console.log(sauce);
   sauce
     .save()
     .then(() => res.status(201).json({ message: "Objet enregistré !" }))
@@ -17,6 +21,7 @@ exports.createSauce = (req, res, next) => {
 };
 
 exports.modifySauce = (req, res, next) => {
+  console.log(res);
   const sauceObject = req.file
     ? {
         ...JSON.parse(req.body.sauce),
@@ -39,7 +44,7 @@ exports.deleteSauce = (req, res, next) => {
       const fileName = sauce.imageUrl.split("/images/")[1];
       fs.unlink(`images/${fileName}`, () => {
         Sauce.deleteOne({ _id: req.params.id })
-          .then(() => res.status(200).json({ message: "O``bjet supprimé" }))
+          .then(() => res.status(200).json({ message: "Objet supprimé" }))
           .catch((error) => res.status(400).json({ error }));
       });
     })
@@ -58,6 +63,41 @@ exports.getAllSauces = (req, res, next) => {
     .catch((error) => res.status(400).json({ error }));
 };
 
-// exports.likeSauce = (req, res, next) => {
-//   Sauce.
-// }
+exports.likeDisLike = (req, res, next) => {
+  const sauceId = req.params.id;
+  const like = req.body.like;
+  const userId = req.body.userId;
+
+  Sauce.findOne({ _id: sauceId })
+    .then((sauce) => {
+      switch (like) {
+        case 1:
+          sauce.likes += 1;
+          sauce.usersLiked.push(userId);
+          break;
+        case 0:
+          if (sauce.usersLiked.includes(userId)) {
+            sauce.likes -= 1;
+            sauce.usersLiked.remove(userId);
+          } else if (sauce.usersDisliked.includes(userId)) {
+            sauce.dislikes -= 1;
+            sauce.usersDisliked.remove(userId);
+          }
+          break;
+        case -1:
+          sauce.dislikes += 1;
+          sauce.usersDisliked.push(userId);
+          break;
+      }
+
+      sauce
+        .update()
+        .then(() => {
+          res.status(200).json({
+            message: "Informations de la sauce modifiées !",
+          });
+        })
+        .catch(() => res.status(400).json({ error }));
+    })
+    .catch(() => res.status(500).json({ error }));
+};
