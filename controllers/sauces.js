@@ -20,7 +20,6 @@ exports.createSauce = (req, res, next) => {
 };
 
 exports.modifySauce = (req, res, next) => {
-  console.log(res);
   const sauceObject = req.file
     ? {
         ...JSON.parse(req.body.sauce),
@@ -29,9 +28,28 @@ exports.modifySauce = (req, res, next) => {
         }`,
       }
     : { ...req.body };
+
+  Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+      const fileName = sauce.imageUrl.split("/images/")[1];
+      fs.unlink(`images/${fileName}`, (err) => {
+        if (err) console.log(err);
+        else {
+          console.log("Former file deleted");
+        }
+      });
+    })
+    .catch((error) => res.status(500).json({ error }));
+
   Sauce.updateOne(
     { _id: req.params.id },
-    { ...sauceObject, _id: req.params.id }
+    {
+      ...sauceObject,
+      _id: req.params.id,
+      imageUrl: `${req.protocol}://${req.get("host")}/images/${
+        req.file.filename
+      }`,
+    }
   )
     .then(() => res.status(200).json({ message: "Objet modifié" }))
     .catch((error) => res.status(400).json({ error }));
