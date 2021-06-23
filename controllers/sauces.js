@@ -13,7 +13,6 @@ exports.createSauce = (req, res, next) => {
       req.file.filename
     }`,
   });
-  console.log(sauce);
   sauce
     .save()
     .then(() => res.status(201).json({ message: "Objet enregistré !" }))
@@ -89,9 +88,7 @@ exports.likeDisLike = (req, res, next) => {
           sauce.usersDisliked.push(userId);
           break;
       }
-
-      sauce
-        .update()
+      Sauce.updateOne({ _id: sauceId }, { $set: { ...sauce } })
         .then(() => {
           res.status(200).json({
             message: "Informations de la sauce modifiées !",
